@@ -12,7 +12,7 @@ Establecer las dos máquinas virtuales base con Rocky Linux 9 y conectividad ent
 - RAM: 8 GB
 - Disco: 40 GB
 - Red: NAT + Adaptador Interno
-- IP estática: `192.168.100.10`
+- IP estática: `192.168.100.120`
 
 ## 🖥️ VM2 – wazuh-agent1
 - Sistema: Rocky Linux 9.3
@@ -21,7 +21,7 @@ Establecer las dos máquinas virtuales base con Rocky Linux 9 y conectividad ent
 - Disco base: 40 GB
 - Disco adicional: 500 GB
 - Red: NAT + Adaptador Interno
-- IP estática: `192.168.100.11`
+- IP estática: `192.168.100.121`
 
 ---
 
@@ -36,8 +36,8 @@ hostnamectl
 
 ## 🧩 Configuración /etc/hosts (en ambas VMs)
 ```bash
-192.168.100.10  wazuh-server
-192.168.100.11  wazuh-agent1
+192.168.100.120  wazuh-server
+192.168.100.121  wazuh-agent1
 ```
 
 **¿Por qué es importante?**
