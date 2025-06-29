@@ -4,15 +4,15 @@
 
 ✏️ Tareas
 - Ejecutar actualización general:
-  # bash
+  🖥️ bash
   sudo dnf update -y && sudo dnf upgrade -y
   
 - Instalar herramientas necesarias:
-  # bash
+  🖥️ bash
   sudo dnf install -y curl wget git vim net-tools unzip tar lsof htop epel-release
   
 - Verificar conectividad a Internet:
-  #bash
+  🖥️ bash
   ping -c 4 google.com
 
 🟢 Validación
