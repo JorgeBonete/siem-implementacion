@@ -1,19 +1,20 @@
-# 📦 Bloque 1: Actualización del sistema y herramientas esenciales
+# ✅ Fase 01: 
 
-## Tareas
+📦 Bloque 1 -Actualización del sistema y herramientas esenciales
+
+✏️ Tareas
 - Ejecutar actualización general:
-  ```bash
+  # bash
   sudo dnf update -y && sudo dnf upgrade -y
-  ```
+  
 - Instalar herramientas necesarias:
-  ```bash
+  # bash
   sudo dnf install -y curl wget git vim net-tools unzip tar lsof htop epel-release
-  ```
+  
 - Verificar conectividad a Internet:
-  ```bash
+  #bash
   ping -c 4 google.com
-  ```
 
-## Validación
+🟢 Validación
 - Confirmar que el sistema está actualizado (`dnf check-update` sin resultados).
 - Verificar que los comandos `curl`, `wget`, `git`, etc. funcionan correctamente.
