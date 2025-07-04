@@ -1,0 +1,124 @@
+# SPRINT 1: TAREA 2 - Sincronización Horaria (NTP) con Chrony ⏰
+
+---
+
+Esta tarea se enfocó en asegurar que ambas máquinas virtuales (`nodo-coordinadorwz` y `nodo-datoswz`) mantengan una sincronización horaria precisa utilizando el demonio `chronyd`. La precisión horaria es fundamental en un SIEM para la correcta correlación de eventos y logs. Esta configuración se realizó en **AMBAS VMs**.
+
+## Pasos de Configuración: ⚙️
+
+### Paso 1: Instalar Chrony 📦
+
+Se verificó e instaló el paquete `chrony` en ambas VMs, que es necesario para la sincronización horaria.
+
+**Comando:**
+
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo dnf install -y chrony
+✅ Salida Esperada (fragmento, si ya está instalado o al instalar):
+
+Last metadata expiration check: X:XX:XX ago on Fri 04 Jul 2025 ...
+Package chrony-X.X-X.el9.x86_64 is already installed.
+Dependencies resolved.
+Nothing to do.
+Complete!
+✨ --- ✨
+
+Paso 2: Configurar Chrony 📝
+Se modificó el archivo de configuración de chrony para apuntar a servidores NTP adecuados y se habilitó la sincronización automática.
+
+Comandos:
+
+Editar el archivo de configuración:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo nano /etc/chrony.conf
+
+
+Contenido del archivo (/etc/chrony.conf):
+Asegúrate de que las líneas server apunten a servidores NTP apropiados para tu región (en este caso, servidores NTP de Ecuador para una latencia óptima). Descomenta o añade las líneas necesarias.
+
+# Use public NTP servers from the pool.ntp.org project.
+# Please consider joining the pool ([https://www.pool.ntp.org/join.html](https://www.pool.ntp.org/join.html)).
+# server 0.rocky.pool.ntp.org iburst
+# server 1.rocky.pool.ntp.org iburst
+# server 2.rocky.pool.ntp.org iburst
+# server 3.rocky.pool.ntp.org iburst
+
+# Servidores NTP recomendados para la región de Ecuador
+server 0.ec.pool.ntp.org iburst
+server 1.ec.pool.ntp.org iburst
+server 2.ec.pool.ntp.org iburst
+server 3.ec.pool.ntp.org iburst
+
+# Record the rate at which the system clock gains or loses time.
+# driftfile /var/lib/chrony/drift
+
+# Allow the system clock to be stepped in the first three updates
+# if its offset is larger than 1 second.
+makestep 1.0 -1
+
+# Get a list of NTP servers from the DHCP response and use them.
+# dhcp allow NTP
+
+# This directive enables a client to synchronize only when it has
+# NTP access to the Internet.
+# local stratum 10
+
+# Specify file containing keys for NTP authentication.
+# keyfile /etc/chrony.keys
+
+# Specify directory for log files.
+logdir /var/log/chrony
+
+# The following directives provide for the use of an authenticated
+# NTP server to serve clients.
+# bindcmdaddress 127.0.0.1
+# bindcmdaddress ::1
+
+# Serve time to network clients.
+# allow 192.168.0.0/16
+
+# Allow NTP client access from the 192.168.0.0/16 subnet.
+# allow 192.168.0.0/16
+
+# Serve the time only to clients in a specific subnet.
+# bindaddress 192.168.1.10  # En nodo-coordinadorwz
+# bindaddress 192.168.1.20   # En nodo-datoswz
+Guarda los cambios y sal del editor (Ctrl+X, Y, Enter en nano).
+
+✨ --- ✨
+
+Paso 3: Habilitar, Iniciar y Verificar el Servicio Chrony ✅
+Se habilitó chronyd para que se inicie automáticamente con el sistema, se inició el servicio y se verificó su estado y la sincronización con los servidores NTP.
+
+Comandos:
+
+Habilitar e iniciar el servicio:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo systemctl enable --now chronyd
+
+
+Reiniciar el servicio (esto es importante para aplicar cualquier cambio hecho en /etc/chrony.conf):
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo systemctl restart chronyd
+
+
+Verificar el estado del servicio chronyd:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo systemctl status chronyd
+
+✅ Salida Esperada (fragmento):
+● chronyd.service - NTP client/server
+Loaded: loaded (/usr/lib/systemd/system/chronyd.service; enabled; vendor preset: enabled)
+Active: active (running) since Fri 2025-07-04 ...
+
+
+Verificar la sincronización con los servidores NTP y el estado de las fuentes:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ chronyc sources -v
+
+✅ Salida Esperada (fragmento, indicando servidores con `^*` o `^+` para una buena conexión):
+210 Number of sources = X MSource Name Stratum Poll Reach LastRx Last sample
+^* mrtg.wisp.net.ec                  2   6   377    25   +60us[+100us] +/-   20ms
+^+ ntp.telecu.cloud                  2   6   377    26  +100us[+120us] +/-   30ms
+
+*Un `^*` o `^+` junto al nombre del servidor indica que `chrony` está sincronizado con él o lo está seleccionando activamente como su fuente principal.*
