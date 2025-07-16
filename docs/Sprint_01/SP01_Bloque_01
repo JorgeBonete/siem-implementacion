@@ -1,128 +1,115 @@
-# SPRINT 1: TAREA 1 - Configuración Inicial de Red, Nombres de Host y DNS 🌐
+### SPRINT 1: TAREA 01 - Configuración Inicial de Red, Nombres de Host y DNS 🌐
 
----
+    El Sprint 1 se enfocara en establecer una infraestructura de red sólida, configurar servicios esenciales y aplicar medidas de hardening básicas, pero necesarias en las máquinas virtuales (VMs) que alojarán los componentes del SIEM. 
 
-El Sprint 1 se enfocó en establecer una infraestructura de red sólida, configurar servicios esenciales y aplicar medidas de hardening básicas y cruciales en las máquinas virtuales (VMs) que alojarán los componentes del SIEM.
+# Fecha de Completado del Sprint 1: 03 de Julio de 2025 🗓️
 
-**Fecha de Completado del Sprint 1:** 03 de Julio de 2025 🗓️
-
-### Detalles de las Máquinas Virtuales Provisionadas: 🚀
-
+Detalles de las Máquinas Virtuales Provisionadas (Arquitectura de 2 Nodos): 🚀
 A continuación, se listan las especificaciones de red para cada una de las VMs que se utilizarán en el proyecto:
 
-* **VM1 (Rol: Wazuh Manager)**
-    * **Nombre de Host (Hostname):** `nodo-coordinadorwz.dominio.com.ec`
-    * **Dirección IP:** `192.168.1.10`
+# VM1 (Rol: Wazuh Manager)
 
-* **VM2 (Rol: Wazuh Indexer & Dashboard)**
-    * **Nombre de Host (Hostname):** `nodo-datoswz.dominio.com.ec`
-    * **Dirección IP:** `192.168.1.20`
+        *  **Nombre de Host (Hostname):**  `nodo-coordinadorwz.dominio.com.ec`
 
-✨ --- ✨
+        *  **Dirección IP:**  `192.168.1.10`
+# VM2 (Rol: Wazuh Indexer & Dashboard)
 
-## Pasos de Configuración: ⚙️
+        *  **Nombre de Host (Hostname):**  `nodo-datoswz.dominio.com.ec`
 
-### Paso 1: Configuración de IPs Estáticas 🔗
+        *  **Dirección IP:**  `192.168.1.20`
 
-Se configuraron las interfaces de red para usar direcciones IP estáticas en lugar de DHCP.
+✨----------------------------------------------------------------------------------------------------------------------------------✨
 
-**Comandos (Ejemplo para VM1: `nodo-coordinadorwz`):**
+### Pasos de Configuración: ⚙️
 
-1.  **Listar las conexiones de red existentes** para identificar el nombre de la interfaz (ej. `ensxx`):
-    💻 ```bash
-    [admin@nodo-coordinadorwz ~]$ sudo nmcli connection show
-    ```
+## Paso 1: Configuración de IPs Estáticas 🔗
+    Se configuraron las interfaces de red para usar direcciones IP estáticas en lugar de DHCP.
 
-2.  **Modificar la configuración de la interfaz de red** con la IP estática, máscara de subred, gateway y DNS. 
-    💻 ```bash
-    [admin@nodo-coordinadorwz ~]$ sudo nmcli connection modify ensxx ipv4.method manual ipv4.addresses 192.168.1.10/24 ipv4.gateway 192.168.1.1 ipv4.dns 192.168.1.1 connection.autoconnect yes
-    ```
-    * 📝 **Nota:** Para **VM2 (`nodo-datoswz`)**, el comando sería similar, pero con `ipv4.addresses 192.168.1.20/24`. El gateway y el DNS (`192.168.1.1`) serían los mismos en ambas VMs.
+    Comandos (Ejemplo para VM1: nodo-coordinadorwz):
 
-3.  **Reiniciar la interfaz de red** para aplicar los cambios:
-    💻 ```bash
-    [admin@nodo-coordinadorwz ~]$ sudo nmcli connection up ensxx
-    ```
+    Listar las conexiones de red existentes para identificar el nombre de la interfaz (ej. ensxx):
+    💻 # bash
+            [admin@nodo-coordinadorwz ~]$ sudo nmcli connection show
 
-4.  **Verificar la configuración IP** de la interfaz:
-    💻 ```bash
-    [admin@nodo-coordinadorwz ~]$ ip a show ensxx
-    ```
-    **✅ Salida Esperada (fragmento para VM1: `nodo-coordinadorwz`):**
-    ```
-    inet 192.168.1.10/24 brd 192.168.1.255 scope global noprefixroute ensxx
-    ```
+    Modificar la configuración de la interfaz de red con la IP estática, máscara de subred, gateway y DNS.
+        💻 # bash
+            [admin@nodo-coordinadorwz ~]$ sudo nmcli connection modify ensxx ipv4.method manual ipv4.addresses 192.168.1.10/24 ipv4.gateway 192.168.1.1 ipv4.dns 192.168.1.1 connection.autoconnect yes
 
-✨ --- ✨
+    📝 Nota: Para VM2 (nodo-datoswz), el comando sería similar, pero con ipv4.addresses 192.168.1.20/24. El gateway y el DNS (192.168.1.1) serían los mismos en ambas VMs.
+    Reiniciar la interfaz de red para aplicar los cambios:
+        💻 # bash
+            [admin@nodo-coordinadorwz ~]$ sudo nmcli connection up ensxx
 
-### Paso 2: Configuración de Hostnames y FQDN 🖥️
+    Verificar la configuración IP de la interfaz:
+        💻 # bash
+            [admin@nodo-coordinadorwz ~]$ ip a show ensxx
 
-Se estableció el nombre de host de cada máquina y su FQDN (Fully Qualified Domain Name).
+✅ Salida Esperada (fragmento para VM1: nodo-coordinadorwz):
+        *inet 192.168.1.10/24 brd 192.168.1.255 scope global noprefixroute ensxx*
+✨----------------------------------------------------------------------------------------------------------------------------------✨
 
-**Comandos (Ejemplo para VM1: `nodo-coordinadorwz`):**
+## Paso 2: Configuración de Hostnames y FQDN 🖥️
+    Se estableció el nombre de host de cada máquina y su FQDN (Fully Qualified Domain Name).
 
-1.  **Establecer el hostname estático:**
-    💻 ```bash
-    [admin@nodo-coordinadorwz ~]$ sudo hostnamectl set-hostname nodo-coordinadorwz.dominio.com.ec
-    ```
+    Comandos (Ejemplo para VM1: nodo-coordinadorwz):
+
+    1. Establecer el hostname estático:
+        💻 # bash
+            [admin@nodo-coordinadorwz ~]$ sudo hostnamectl set-hostname nodo-coordinadorwz.dominio.com.ec
+
     * 📝 **Nota:** Para **VM2 (`nodo-datoswz`)**, el comando sería `sudo hostnamectl set-hostname nodo-datoswz.dominio.com.ec`.
 
-2.  **Verificar el hostname configurado:**
-    💻 ```bash
-    [admin@nodo-coordinadorwz ~]$ hostnamectl
-    ```
-    **✅ Salida Esperada (fragmento para VM1: `nodo-coordinadorwz`):**
-    ```
-          Static hostname: nodo-coordinadorwz.dominio.com.ec
-               Icon name: computer-vm
-                 Chassis: vm
-              Machine ID: [...]
-                 Boot ID: [...]
-          Virtualization: kvm
+    2.  **Verificar el hostname configurado:**
+        💻 # bash
+            [admin@nodo-coordinadorwz ~]$ *hostnamectl*
+
+✅ Salida Esperada (fragmento para VM1: nodo-coordinadorwz):
+
+        *Static hostname: nodo-coordinadorwz.dominio.com.ec
+        Icon name: computer-vm
+        Chassis: vm
+        Machine ID: [...]
+        Boot ID: [...]
+        Virtualization: kvm
         Operating System: Rocky Linux 9.4 (Blue Onyx)
-             CPE OS Name: cpe:/o:rocky:rocky:9::baseos
-                  Kernel: Linux 5.14.0-431.el9.x86_64
-            Architecture: x86-64
-         Hardware Vendor: Red Hat
-          Hardware Model: KVM
-    ```
+        CPE OS Name: cpe:/o:rocky:rocky:9::baseos
+        Kernel: Linux 5.14.0-431.el9.x86_64
+        Architecture: x86-64
+        Hardware Vendor: Red Hat
+        Hardware Model: KVM*
+✨----------------------------------------------------------------------------------------------------------------------------------✨
 
-✨ --- ✨
+## Paso 3: Configuración de /etc/hosts y /etc/resolv.conf 🌐
+    Se configuraron estos archivos en ambas VMs para asegurar la resolución de nombres interna (sin depender inicialmente de un servidor DNS externo) y la configuración del servidor DNS primario de la red.
 
-### Paso 3: Configuración de `/etc/hosts` y `/etc/resolv.conf` 🌐
+    Comandos (a realizar en AMBAS VMs):
 
-Se configuraron estos archivos en ambas VMs para asegurar la resolución de nombres interna (sin depender inicialmente de un servidor DNS externo) y la configuración del servidor DNS primario de la red.
+    1. Editar el archivo /etc/hosts para añadir las entradas de resolución de nombres locales:
+        💻 # bash
+            [admin@nodo-coordinadorwz ~]$ sudo nano /etc/hosts
 
-**Comandos (a realizar en AMBAS VMs):**
-
-1.  **Editar el archivo `/etc/hosts`** para añadir las entradas de resolución de nombres locales:
-    💻 ```bash
-    [admin@nodo-coordinadorwz ~]$ sudo nano /etc/hosts
-    ```
     **Contenido añadido al final del archivo:**
-    ```
-    # Entradas para SIEM Wazuh
-    192.168.1.10  nodo-coordinadorwz.dominio.com.ec  nodo-coordinadorwz
-    192.168.1.20  nodo-datoswz.dominio.com.ec      nodo-datoswz
-    ```
+    Entradas para SIEM Wazuh
+    192.168.1.10 nodo-coordinadorwz.dominio.com.ec nodo-coordinadorwz
+    192.168.1.20 nodo-datoswz.dominio.com.ec nodo-datoswz
 
-2.  **Configurar el archivo `/etc/resolv.conf`** para especificar el servidor DNS de la red:
-    💻 ```bash
-    [admin@nodo-coordinadorwz ~]$ sudo nano /etc/resolv.conf
-    ```
-    **Contenido añadido/modificado:**
-    ```
-    nameserver 192.168.1.1
-    search dominio.com.ec
-    ```
-    * 📝 **Nota:** Se asume que `192.168.1.1` es la dirección IP del servidor DNS primario de la red.
+    2.  **Configurar el archivo `/etc/resolv.conf`** para especificar el servidor DNS de la red:
 
-3.  **Verificar la resolución de nombres** y la conectividad entre las VMs (ejemplo de verificación desde `nodo-coordinadorwz`):
-    💻 ```bash
-    [admin@nodo-coordinadorwz ~]$ ping -c 3 nodo-datoswz.dominio.com.ec
-    [admin@nodo-coordinadorwz ~]$ ping -c 3 nodo-datoswz
-    ```
-    **✅ Salida Esperada:**
-    Pings exitosos a la dirección IP `192.168.1.20`, confirmando la resolución tanto por FQDN como por hostname corto.
+        💻 # bash
+            [admin@nodo-coordinadorwz ~]$ *sudo nano /etc/resolv.conf*
+            Contenido añadido/modificado:
+
+                *nameserver 192.168.1.1
+                search dominio.com.ec*
+    📝 Nota: Se asume que 192.168.1.1 es la dirección IP del servidor DNS primario de la red.
+    Verificar la resolución de nombres y la conectividad entre las VMs (ejemplo de verificación desde nodo-coordinadorwz):
+        💻 # bash
+            [admin@nodo-coordinadorwz ~]$ ping -c 3 nodo-datoswz.dominio.com.ec
+            [admin@nodo-coordinadorwz ~]$ ping -c 3 nodo-datoswz
+
+
+**✅ Salida Esperada:**
+
+Pings exitosos a la dirección IP `192.168.1.20`, confirmando la resolución tanto por FQDN como por hostname corto.
 
 ---
