@@ -1,0 +1,227 @@
+# SPRINT 1: TAREA 5 - Configuración y Hardening Exhaustivo del Sistema Operativo 🛡️
+
+---
+
+Esta tarea se enfoca en la aplicación de medidas de hardening exhaustivas al sistema operativo en 
+**ambas máquinas virtuales** (`nodo-coordinadorwz` y `nodo-datoswz`). Esto es crucial para fortalecer la seguridad de los servidores contra posibles ataques y asegurar una base robusta para el despliegue del SIEM.
+
+## Pasos de Configuración y Hardening: ⚙️
+
+### Paso 1: Habilitar y Configurar SELinux para Modo `Enforcing` ✅
+
+SELinux (Security-Enhanced Linux) es un mecanismo de seguridad del kernel que proporciona control de acceso obligatorio (MAC) para las aplicaciones, procesos y archivos. Habilitarlo en modo `enforcing` asegura una capa adicional de protección al sistema. Este paso se realizará en 
+**AMBAS VMs**.
+
+**Comandos:**
+
+1.  **Verificar el estado actual de SELinux:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sestatus
+    ```
+    ✅ Salida Esperada (ejemplo, puede ser `disabled` o `permissive`):
+    ```
+    SELinux status:                 disabled
+    ```
+
+2.  **Editar el archivo de configuración de SELinux para establecerlo en modo `enforcing`:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo nano /etc/selinux/config
+    ```
+
+3.  **Modificar la línea `SELINUX=` a `enforcing`:**
+    ```
+    # This file controls the state of SELinux on the system.
+    # SELINUX= can take one of these three values:
+    #     enforcing - SELinux security policy is enforced.
+    #     permissive - SELinux prints warnings instead of enforcing.
+    #     disabled - No SELinux policy is loaded.
+    SELINUX=enforcing
+    # SELINUXTYPE= can take one of these two values:
+    #     targeted - Targeted processes are protected,
+    #     mls - Multi Level Security protection.
+    SELINUXTYPE=targeted
+    ```
+    *Guarda los cambios y sal del editor (Ctrl+X, Y, Enter en `nano`).*
+
+4.  **Reiniciar el sistema para aplicar los cambios de SELinux permanentemente:**
+    * 📝 **¡IMPORTANTE!** Los cambios en `/etc/selinux/config` solo surten efecto después de un reinicio.
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo reboot
+    ```
+    * ⚠️ **Nota:** Tu sesión SSH se desconectará. Espera unos momentos y vuelve a conectarte a la VM.
+
+5.  **Verificar el estado de SELinux DESPUÉS del reinicio:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sestatus
+    ```
+    ✅ Salida Esperada (después del reinicio y si la configuración es correcta):
+    ```
+    SELinux status:                 enabled
+    SELinuxfs mount:                /sys/fs/selinux
+    SELinux root directory:         /etc/selinux
+    Loaded policy name:             targeted
+    Current mode:                   enforcing
+    Mode from config file:          enforcing
+    Policy MLS status:              enabled
+    Policy deny_unknown status:     allow
+    Memory protection checking:     actual (secure)
+    Max kernel policy version:      33
+    ```
+---
+
+### Paso 2: Configurar el Firewall (Firewalld) 🧱
+
+Se configuró el firewall para permitir únicamente el tráfico esencial para el funcionamiento de los servicios del SIEM, bloqueando el resto. Este paso se realizó en **AMBAS VMs**.
+
+**Comandos:**
+
+1.  **Habilitar y asegurar que `firewalld` esté ejecutándose:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo systemctl enable --now firewalld
+    ```
+
+2.  **Establecer la zona por defecto a `drop`** (política estricta que rechaza todo por defecto):
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo firewall-cmd --set-default-zone=drop
+    ```
+    ✅ Salida Esperada:
+    ```
+    success
+    ```
+
+3.  **Permitir tráfico esencial (ajusta el puerto SSH si lo cambiaste en la Tarea 3):**
+    * **Puerto SSH** (ej. `2222` si lo cambiaste, o `22` por defecto):
+        💻 ```bash
+        [admin@nodo-coordinadorwz ~]$ sudo firewall-cmd --add-port=2222/tcp --permanent
+        ```
+        ✅ Salida Esperada:
+        ```
+        success
+        ```
+    * **Puertos comunes para herramientas SIEM (ejemplos):**
+        * **Elasticsearch (HTTP):**
+            💻 ```bash
+            [admin@nodo-coordinadorwz ~]$ sudo firewall-cmd --add-port=9200/tcp --permanent
+            ```
+            ✅ Salida Esperada: `success`
+        * **Elasticsearch (Transport):**
+            💻 ```bash
+            [admin@nodo-coordinadorwz ~]$ sudo firewall-cmd --add-port=9300/tcp --permanent
+            ```
+            ✅ Salida Esperada: `success`
+        * **Wazuh Manager (Agent Communication):**
+            💻 ```bash
+            [admin@nodo-coordinadorwz ~]$ sudo firewall-cmd --add-port=1514/tcp --permanent
+            ```
+            ✅ Salida Esperada: `success`
+        * **Wazuh API (si se expone directamente):**
+            💻 ```bash
+            [admin@nodo-coordinadorwz ~]$ sudo firewall-cmd --add-port=55000/tcp --permanent
+            ```
+            ✅ Salida Esperada: `success`
+        * **Otras herramientas:** Añade aquí cualquier otro puerto que tus herramientas SIEM específicas necesiten.
+
+5.  **Recargar el firewall para aplicar los cambios:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo firewall-cmd --reload
+    ```
+    ✅ Salida Esperada:
+    ```
+    success
+    ```
+
+6.  **Verificar las reglas activas del firewall:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo firewall-cmd --list-all
+    ```
+    ✅ Salida Esperada (fragmento mostrando los puertos permitidos):
+    ```
+    drop (active)
+    target: DROP
+    icmp-block-inversion: no
+    interfaces: ens192
+    sources:
+    services:
+    ports: 2222/tcp 9200/tcp 9300/tcp 5601/tcp 5044/tcp 1514/tcp 55000/tcp
+    protocols:
+    masquerade: no
+    forward-ports:
+    source-ports:
+    icmp-blocks:
+    rich rules:
+    ```
+
+---
+
+### Paso 3: Deshabilitar Servicios Innecesarios 🛑
+
+Se identificaron y deshabilitaron servicios del sistema que no son esenciales para las funciones de un servidor SIEM, reduciendo así la superficie de ataque y el consumo de recursos. Este paso se realizó en **AMBAS VMs**.
+
+**Comandos (ejemplos, ajusta según los servicios presentes en tu VM):**
+
+1.  **Listar servicios que no están activos pero están habilitados innecesarios:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo systemctl list-unit-files --type=service | grep enabled | grep -v running
+    ```
+
+2.  **Deshabilitar servicios si no son necesarios (ejemplo `cups` para impresión, `bluetooth`, `postfix`):**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo systemctl disable --now cups
+    [admin@nodo-coordinadorwz ~]$ sudo systemctl disable --now bluetooth
+    [admin@nodo-coordinadorwz ~]$ sudo systemctl disable --now postfix
+    ```
+    * 📝 **Nota:** Antes de deshabilitar cualquier servicio, asegúrate de que no sea vital para el sistema o para futuras funcionalidades del SIEM.
+
+---
+
+### Paso 4: Instalar y Configurar `aide` (Advanced Intrusion Detection Environment) 🕵️
+
+`aide` es una herramienta de monitoreo de integridad de archivos que ayuda a detectar cambios no autorizados en el sistema de archivos, lo cual es fundamental para la detección de intrusiones. Este paso se realizó en **AMBAS VMs**.
+
+**Comandos:**
+
+1.  **Instalar `aide`:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo dnf install -y aide
+    ```
+    ✅ Salida Esperada (fragmento de la instalación):
+    ```
+    Last metadata expiration check: X:XX:XX ago on Fri 04 Jul 2025 ...
+    Dependencies resolved.
+    Package aide-X.X-X.el9.x86_64 is already installed.
+    Complete!
+    ```
+
+2.  **Inicializar la base de datos de `aide` por primera vez:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo aide --init
+    ```
+    * 📝 **Nota:** Esto puede tardar un tiempo dependiendo del tamaño de tu sistema de archivos.
+
+3.  **Renombrar la nueva base de datos para activarla:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+    ```
+
+4.  **Configurar un cron job para la revisión diaria/semanal de `aide`** (ejemplo diario):
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo crontab -e
+    ```
+    * Añadir la siguiente línea al final del archivo para que `aide` se ejecute todos los días a la 1:00 AM y envíe un informe (asumiendo que los logs de cron son revisados):
+        ```
+        0 1 * * * /usr/sbin/aide --check | mail -s "AIDE integrity check for $(hostname)" root
+        ```
+    *Guarda los cambios y sal del editor (Ctrl+X, Y, Enter en `nano`).*
+
+5.  **Ejecutar una verificación de prueba:**
+    💻 ```bash
+    [admin@nodo-coordinadorwz ~]$ sudo aide --check
+    ```
+    ✅ Salida Esperada (si no hay cambios después de la inicialización):
+    ```
+    AIDE ran for 0 seconds with a memory usage of 0 MB.
+    AIDE found 0 differences between database and filesystem.
+    ```
+    (Si hay cambios, los listará. Tras cambios legítimos, la base de datos de `aide` debe ser actualizada con `sudo aide --update` y luego renombrar el archivo `.new.gz`).
+
+---

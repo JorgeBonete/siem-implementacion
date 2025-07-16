@@ -1,0 +1,77 @@
+
+# SPRINT 1: TAREA 4 - Actualización Completa de Paquetes del Sistema Operativo y Utilitarios Base 🔄
+
+---
+
+Esta tarea se enfoca en asegurar que ambas máquinas virtuales (`nodo-coordinadorwz` y `nodo-datoswz`) tengan todos sus paquetes del sistema operativo y utilitarios base completamente actualizados. Mantener el sistema al día es fundamental para la seguridad, estabilidad y rendimiento del entorno, preparando el terreno para futuras instalaciones y configuraciones del SIEM. Esta actualización se realizó en 
+
+**AMBAS VMs**.
+
+## Pasos de Ejecución: ⚙️
+
+### Paso 1: Realizar la Actualización Completa del Sistema 🚀
+
+Se ejecuta el comando de actualización del gestor de paquetes `dnf` para descargar e instalar todas las actualizaciones disponibles, incluyendo parches de seguridad, nuevas características y correcciones de errores.
+
+**Comando:**
+
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo dnf update -y
+```
+
+✅ Salida Esperada (fragmento, si ya está actualizado o al actualizar):
+
+```
+Last metadata expiration check: 0:00:10 ago on Fri 04 Jul 2025 HH:MM:SS.
+Dependencies resolved.
+================================================================================
+ Package          Architecture   Version             Repository           Size
+================================================================================
+Upgrading:
+ kernel           x86_64         5.14.0-XXX.el9_X    baseos              6.0 M
+ kernel-core      x86_64         5.14.0-XXX.el9_X    baseos               43 M
+ kernel-modules   x86_64         5.14.0-XXX.el9_X    baseos               33 M
+...
+Total size: XX M
+Is this ok [y/N]: y
+...
+Complete!
+(Si el sistema ya está completamente actualizado, la salida indicará Nothing to do.)
+```
+
+✨ --- ✨
+
+### Paso 2: Limpiar Paquetes Obsoletos (Opcional pero Recomendado) 🧹
+
+Después de una actualización importante, especialmente si se actualizó el kernel, es buena práctica limpiar paquetes obsoletos o no utilizados para liberar espacio en disco y mantener el sistema ordenado.
+
+**Comando:**
+
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo dnf autoremove -y
+```
+
+✅ Salida Esperada (fragmento, si hay paquetes para eliminar o no):
+
+```
+Last metadata expiration check: 0:00:10 ago on Fri 04 Jul 2025 HH:MM:SS.
+Dependencies resolved.
+No packages marked for removal.
+Complete!
+
+(Si se eliminan paquetes, la salida mostrará la lista de paquetes removidos.)
+```
+
+✨ --- ✨
+
+### Paso 3: Reiniciar el Sistema (si se actualizó el Kernel) 🔄
+
+Si la actualización incluyó un nuevo kernel (ver Paso 1), es **crucial** reiniciar el sistema para que el nuevo kernel sea cargado y los cambios surtan efecto completamente. Si no se actualizó el kernel, este paso es opcional.
+
+**Comando:**
+
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo reboot
+```
+
+📝 Nota: La conexión SSH se perderá después de este comando. Deberás volver a conectarte una vez que la VM se reinicie.
