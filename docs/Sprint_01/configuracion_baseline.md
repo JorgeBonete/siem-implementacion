@@ -197,7 +197,5 @@ Comprobar la configuración distribuida desde `default/agent.conf`.
     - Los hashes de configuración (`Configuration hash` y `Shared file hash`) confirman que recibió el baseline del Manager que vimos anteriormente.  
     - El módulo **Syscheck (FIM)** corrió exitosamente tras el ultimo reinicio del Manager.  
     - Esto asegura que el **baseline (SCA, FIM y Syscollector)** está activo.  
-
-```
-
+    
 <img src="../../images/siem1.png" alt="Evidencia SCA" width="900">
