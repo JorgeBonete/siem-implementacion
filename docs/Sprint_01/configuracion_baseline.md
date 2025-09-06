@@ -205,6 +205,6 @@ Comprobar la configuración distribuida desde `default/agent.conf`.
 </figure>
 
 <figure>
-  <img src="../../images/fim1.png" alt="Evidencia FIM" width="900">
+  <img src="../../images/siem2.png" alt="Evidencia FIM" width="900">
   <figcaption><b>Figura 2.</b> Evidencia del módulo <b>FIM</b> mostrando inventario de archivos críticos monitorizados en el agente 010.</figcaption>
 </figure>
