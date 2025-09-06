@@ -183,7 +183,8 @@ Comprobar la configuración distribuida desde `default/agent.conf`.
            IP address: 192.168.1.10
            Status:     Active
 
-           Operating system:    Linux | name_server_10 | 5.14.0-570.32.1.el9_6.x86_64 | #1 SMP PREEMPT_DYNAMIC Fri Aug 8 18:29:23 UTC 2025 | x86_64
+           Operating system:    Linux | name_server_10 | 5.14.0-570.32.1.el9_6.x86_64
+           #1 SMP PREEMPT_DYNAMIC Fri Aug 8 18:29:23 UTC 2025 | x86_64
            Client version:      Wazuh v4.12.0
            Configuration hash:  1b163817bc26e40a6806f460c0cdf7d8
            Shared file hash:    24914d97d88d4127d62796e3d9272bbf
