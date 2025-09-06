@@ -192,11 +192,12 @@ Comprobar la configuración distribuida desde `default/agent.conf`.
            Syscheck last started at:  Fri Sep  5 13:02:12 2025
            Syscheck last ended at:    Fri Sep  5 13:02:18 2025
 
-    ➡️ **📝 Explicación:**  
+➡️ **📝 Explicación:**
     - El agente `010` está en estado **Active** y reporta normalmente.  
     - Los hashes de configuración (`Configuration hash` y `Shared file hash`) confirman que recibió el baseline del Manager que vimos anteriormente.  
     - El módulo **Syscheck (FIM)** corrió exitosamente tras el ultimo reinicio del Manager.  
     - Esto asegura que el **baseline (SCA, FIM y Syscollector)** está activo.  
 
-```        
+```
+
 ![Descripción de la imagen](../../images/siem1.png)
