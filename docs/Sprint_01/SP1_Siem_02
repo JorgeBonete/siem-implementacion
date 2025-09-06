@@ -1,0 +1,137 @@
+### SPRINT 1: TAREA 2 - Hardening Básico de SSH 🔒
+
+Esta tarea se centró en aplicar medidas de hardening básicas y cruciales al servicio SSH en ambas máquinas virtuales (`nodo-coordinadorwz` y `nodo-datoswz`). Esto es esencial para proteger el acceso remoto a los servidores y reducir la superficie de ataque del SIEM. Los pasos se realizaron en **AMBAS VMs**.
+
+## Pasos de Configuración: ⚙️
+
+### Paso 1: Actualizar el Sistema 🔄
+
+Antes de cualquier configuración, se realizó una actualización completa del sistema para asegurar que todos los paquetes estén en sus últimas versiones y se apliquen parches de seguridad.
+
+**Comando:**
+
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo dnf update -y
+```
+
+**✅ Salida Esperada (fragmento, si ya está actualizado o al actualizar):**
+```
+Last metadata expiration check: X:XX:XX ago on Fri 04 Jul 2025 ...
+Dependencies resolved.
+Nothing to do.
+Complete!
+(O una salida similar que muestre la actualización de paquetes)
+```
+
+✨ --- ✨
+
+### Paso 2: Crear un Usuario Estándar para Operaciones Diarias 👤
+
+Se creó un nuevo usuario con privilegios limitados para las operaciones diarias, evitando el uso directo del usuario root o admin para tareas rutinarias.
+
+**Comandos:**
+
+Crear el nuevo usuario (ej. operador):
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo adduser operador
+```
+
+Establecer una contraseña segura para el nuevo usuario:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo passwd operador
+```
+
+* 📝 **Nota:** Se te pedirá que ingreses y confirmes la nueva contraseña.
+
+Añadir el usuario al grupo wheel (o sudo) para permitirle ejecutar comandos con sudo:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo usermod -aG wheel operador
+```
+
+Verificar que el usuario ha sido añadido al grupo wheel:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ groups operador
+```
+
+**✅ Salida Esperada:**
+```
+operador : operador wheel
+```
+
+✨ --- ✨
+
+### Paso 3: Configurar el Daemon SSH (sshd) 🛡️
+
+Se modificó el archivo de configuración del demonio SSH para mejorar la seguridad, deshabilitando el inicio de sesión como root y el acceso con contraseña.
+
+**Comandos:**
+
+Hacer una copia de seguridad del archivo de configuración original de SSH:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+```
+
+Editar el archivo de configuración de SSH:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo nano /etc/ssh/sshd_config
+```
+
+**Realizar las siguientes modificaciones en el archivo:**
+
+Cambiar el puerto por defecto de SSH (Opcional, se recomienda un puerto no estándar, ej. 2222). Si se cambia, asegúrate de abrirlo en el firewall.
+```
+#Port 22
+Port 2222
+```
+
+📝 Nota: Si cambias el puerto, todos los accesos SSH futuros deberán especificarlo (ej. ssh -p 2222 operador@ip_servidor).
+
+Deshabilitar el inicio de sesión como usuario root:
+```
+#PermitRootLogin prohibit-password
+PermitRootLogin no
+```
+
+Habilitar la autenticación por contraseña 
+```
+PasswordAuthentication yes
+```
+
+Permitir solo el acceso de usuarios específicos (ej. admin y el nuevo operador):
+```
+#AllowUsers
+AllowUsers admin operador
+```
+
+Guarda los cambios y sal del editor (Ctrl+X, Y, Enter en nano).
+
+✨ --- ✨
+
+### Paso 4: Reiniciar y Verificar el Servicio SSH 🔄✅
+
+Después de realizar los cambios en /etc/ssh/sshd_config, es crucial reiniciar el servicio SSH para que los cambios surtan efecto y verificar que funciona correctamente.
+
+**Comandos (desde las VMs):**
+
+Reiniciar el servicio SSH:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo systemctl restart sshd
+```
+
+Verificar el estado del servicio SSH:
+💻 ```bash
+[admin@nodo-coordinadorwz ~]$ sudo systemctl status sshd
+```
+
+**✅ Salida Esperada (fragmento):**
+```
+● sshd.service - OpenSSH server daemon
+Loaded: loaded (/usr/lib/systemd/system/sshd.service; enabled; vendor preset: enabled)
+Active: active (running) since Fri 2025-07-04 ...
+```
+
+Probar el acceso SSH desde tu máquina local (con el nuevo usuario operador y, si cambiaste el puerto, especifícalo):
+💻 ```bash
+[usuario@maquina-local ~]$ ssh operador@192.168.1.10
+[usuario@maquina-local ~]$ ssh -p 2222 operador@192.168.1.10
+```
