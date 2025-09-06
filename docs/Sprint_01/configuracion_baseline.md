@@ -203,3 +203,8 @@ Comprobar la configuración distribuida desde `default/agent.conf`.
   <img src="../../images/siem1.png" alt="Resultado SCA" width="900">
   <figcaption><b>Figura 1.</b> Evidencia del módulo <b>SCA</b> ejecutando el benchmark <i>CIS Rocky Linux 9 v1.0.0</i> en el agente 010.</figcaption>
 </figure>
+
+<figure>
+  <img src="../../images/fim1.png" alt="Evidencia FIM" width="900">
+  <figcaption><b>Figura 2.</b> Evidencia del módulo <b>FIM</b> mostrando inventario de archivos críticos monitorizados en el agente 010.</figcaption>
+</figure>
