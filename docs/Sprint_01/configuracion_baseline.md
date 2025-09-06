@@ -199,4 +199,5 @@ Comprobar la configuración distribuida desde `default/agent.conf`.
     - Esto asegura que el **baseline (SCA, FIM y Syscollector)** está activo.  
 
 
-    ![Descripción de la imagen](/images/siem1.png)
+    ![Descripción de la imagen](../../images/siem1.png)
+
