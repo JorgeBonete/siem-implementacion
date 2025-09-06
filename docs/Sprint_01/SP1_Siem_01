@@ -1,0 +1,142 @@
+
+### SPRINT 1: TAREA 01 - Configuración Inicial de Red, Nombres de Host y DNS 
+
+    El Sprint 1 se enfocara en establecer una infraestructura de red sólida, configurar servicios esenciales y aplicar medidas de hardening básicas, pero necesarias en las máquinas virtuales (VMs) que alojarán los componentes del SIEM. 
+
+# Fecha de Completado del Sprint 1: 03 de Julio de 2025 🗓️
+
+Detalles de las Máquinas Virtuales Provisionadas (Arquitectura de 2 Nodos): 
+A continuación, se listan las especificaciones de red para cada una de las VMs que se utilizarán en el proyecto:
+
+# VM1 (Rol: Wazuh Manager)
+        * Nombre de Host (Hostname):  "nodo-coordinadorwz.dominio.com.ec"
+        * Dirección IP:  "192.168.1.10"
+    
+# VM2 (Rol: Wazuh Indexer & Dashboard)
+        * Nombre de Host (Hostname):  "nodo-datoswz.dominio.com.ec"
+        * Dirección IP:  "192.168.1.20"
+
+✨----------------------------------------------------------------------------------------------------✨
+
+### Pasos de Configuración: ⚙️
+## Paso 1: Configuración de Hostnames y FQDN 🖥️
+    Se estableció el nombre de host de cada máquina y su FQDN (Fully Qualified Domain Name).
+
+    1. Establecer el hostname estático: (VM1)
+        💻 # bash
+            [admin@nodo-coordinadorwz ~]$ sudo hostnamectl set-hostname nodo-coordinadorwz.dominio.com.ec
+
+    2. Establecer el hostname estático: (VM2)
+        💻 # bash
+            [admin@nodo-coordinadorwz ~]$ sudo hostnamectl set-hostname nodo-datoswz.dominio.com.ec
+
+✨----------------------------------------------------------------------------------------------------✨
+
+## Paso 2: Configuración de /etc/hosts y /etc/resolv.conf 🌐
+    Se configuraron estos archivos en ambas VMs para asegurar la resolución de nombres interna (sin depender de un servidor DNS) y la configuración del servidor DNS primario de la red.
+
+    1. Editar el archivo /etc/hosts para añadir las entradas de resolución de nombres locales:
+        💻 # bash (VM1 y VM2)
+            [admin@nodo-coordinadorwz ~]$ sudo nano /etc/hosts
+                192.168.1.10 nodo-coordinadorwz.dominio.com.ec nodo-coordinadorwz
+                192.168.1.20 nodo-datoswz.dominio.com.ec nodo-datoswz
+
+    2. Pruebas para validar resolución de nombres locales (hosts)
+        💻 Desde VM1 y VM2:
+                    
+                💻 # bash (VM 1 como root)
+                    ping -c 2 nodo-coordinadorwz
+                    ping -c 2 nodo-coordinadorwz.dominio.com.ec
+                    ping -c 2 nodo-datoswz
+                    ping -c 2 nodo-datosws.dominio.com.ec
+
+                    getent hosts nodo-coordinadorwz
+                    getent hosts nodo-datoswz
+                    getent hosts nodo-datosws.dominio.com.ec
+                    
+                💻 # bash (VM 2 como root)
+                    ping -c 2 nodo-datoswz
+                    ping -c 2 nodo-datosws.dominio.com.ec
+                    ping -c 2 nodo-coordinadorwz
+                    ping -c 2 nodo-coordinadorwz.dominio.com.ec
+
+                    getent hosts nodo-datoswz
+                    getent hosts nodo-coordinadorwz
+                    getent hosts nodo-coordinadorwz.dominio.com.ec
+
+✨----------------------------------------------------------------------------------------------------✨
+
+## Paso 3: Sincronización horaria entre VM's
+    Es un servicio de sincronización de hora que mantiene el reloj de los servidores alineados con la hora oficial usando el protocolo NTP (Network Time Protocol).
+    Importante en el SIEM debido a la correlación de eventos, e investigación forense que tienen que tener hora exacta de la investigación de eventos.
+
+                💻 Desde VM1, VM2 (como root)
+                    sudo dnf install chrony -y
+                    sudo systemctl enable --now chronyd
+                    sudo chronyc sources
+                    sudo chronyc tracking
+                    sudo systemctl enable --now chronyd
+                    sudo systemctl restart chronyd
+            
+                Validación desde VM1 y VM2
+                    💻 Desde VM1 (como root)
+                    date
+                        vie 08 ago 2025 23:16:12 -05
+                    sudo systemctl status chronyd
+                        ● chronyd.service - NTP client/server
+                        Loaded: loaded (/usr/lib/systemd/system/chronyd.service; enabled; preset: enabled)
+                        Active: active (running) since Fri 2025-08-08 23:20:10 -05; 20s ago
+
+✨----------------------------------------------------------------------------------------------------✨
+
+## Paso 4: Actualización de sistema y servicios útikes
+
+    Actualización e Instalación Inicial
+
+    🧰 Utilidades base instaladas en las dos VMs
+        vim	        Editor de texto avanzado en terminal, ideal para modificar configuraciones.
+        nano	    Editor de texto sencillo y fácil de usar desde consola.
+        curl	    Realiza peticiones HTTP, HTTPS y otros protocolos desde la terminal.
+        wget	    Descarga archivos desde la web vía HTTP, HTTPS o FTP.
+        tar	        Empaqueta y desempaqueta archivos .tar y comprimidos .tar.gz.
+        unzip	    Descomprime archivos .zip.
+        net-tools	Conjunto de herramientas clásicas de red (ifconfig, netstat, etc.).
+        bind-utils	Herramientas DNS como dig y nslookup para pruebas de resolución de nombres.
+        telnet	    Prueba conectividad en puertos específicos.
+        jq	        Procesa y formatea datos JSON, útil para APIs como Wazuh u OpenSearch.
+        git	        Sistema de control de versiones para clonar, gestionar y actualizar repositorios.
+        sysstat	    Incluye iostat y mpstat para monitorear CPU, disco y rendimiento del sistema.
+        htop	    Monitor interactivo de procesos y uso de recursos en tiempo real.
+        iftop	    Monitoriza el tráfico de red en tiempo real, mostrando IPs y puertos activos.
+
+                Instalación
+                💻 # bash (VM 1 como root)
+                    sudo dnf update -y
+                    sudo dnf install epel-release -y
+                    sudo dnf install -y \
+                    vim nano \
+                    curl wget \
+                    tar unzip \
+                    net-tools bind-utils telnet \
+                    jq git \
+                    sysstat htop iftop
+
+                Validación de instalación
+                    Última comprobación de caducidad de metadatos hecha hace 0:20:43, el vie 08 ago 2025 23:30:11.
+                    El paquete vim-enhanced-2:8.2.2637-22.el9_6.x86_64 ya está instalado.
+                    El paquete nano-5.6.1-7.el9.x86_64 ya está instalado.
+                    El paquete curl-7.76.1-31.el9_6.1.x86_64 ya está instalado.
+                    El paquete wget-1.21.1-8.el9_4.x86_64 ya está instalado.
+                    El paquete tar-2:1.34-7.el9.x86_64 ya está instalado.
+                    El paquete unzip-6.0-58.el9_5.x86_64 ya está instalado.
+                    El paquete net-tools-2.0-0.64.20160912git.el9.x86_64 ya está instalado.
+                    El paquete bind-utils-32:9.16.23-31.el9_6.x86_64 ya está instalado.
+                    El paquete telnet-1:0.17-85.el9.x86_64 ya está instalado.
+                    El paquete jq-1.6-17.el9_6.2.x86_64 ya está instalado.
+                    El paquete git-2.47.3-1.el9_6.x86_64 ya está instalado.
+                    El paquete sysstat-12.5.4-9.el9.x86_64 ya está instalado.
+                    El paquete htop-3.3.0-1.el9.x86_64 ya está instalado.
+                    El paquete iftop-1.0-0.26.pre4.el9.x86_64 ya está instalado.
+                    Dependencias resueltas.
+                    Nada por hacer.
+                    ¡Listo!

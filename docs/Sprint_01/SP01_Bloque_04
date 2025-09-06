@@ -1,77 +1,290 @@
+### INSTALACIÓN DE PRIMER COMPONENTE EN LA ARQUITECTURA WAZUH INDEXER 🔄
 
-# SPRINT 1: TAREA 4 - Actualización Completa de Paquetes del Sistema Operativo y Utilitarios Base 🔄
+Wazuh Indexer es el motor de almacenamiento y búsqueda de datos.
 
----
+    - Es una distribución personalizada de OpenSearch que Wazuh adapta para integrarse con su ecosistema para el SIEM basado en Wazuh.
+    - Su función es recibir, indexar y almacenar todos los eventos y alertas que el Wazuh Manager y otras fuentes (como Suricata) envían.
+    - Permite buscar y analizar esos datos desde el Wazuh Dashboard mediante consultas.
+    - Trabaja en clúster (puede ser uno o varios nodos), usando TLS/mTLS para comunicación segura entre nodos y con el Manager.
+    - La versión del motor que manejamos para este proyecto es OpenSearch 2.19.1, incluida dentro del paquete wazuh-indexer 4.12.
 
-Esta tarea se enfoca en asegurar que ambas máquinas virtuales (`nodo-coordinadorwz` y `nodo-datoswz`) tengan todos sus paquetes del sistema operativo y utilitarios base completamente actualizados. Mantener el sistema al día es fundamental para la seguridad, estabilidad y rendimiento del entorno, preparando el terreno para futuras instalaciones y configuraciones del SIEM. Esta actualización se realizó en 
+# INSTALACIÓN DE PAQUETERIA WAZUH INDEXER
+            1. Actualizar paquetes y dependencias (como root)
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                    sudo dnf clean all
+                    sudo dnf update -y
+                    sudo dnf install -y curl gnupg policycoreutils-python-utils
 
-**AMBAS VMs**.
+            2. Repositorio (como root)
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                    cat <<EOF | sudo tee /etc/yum.repos.d/wazuh.repo
+                    [wazuh]
+                    name=Wazuh repository
+                    baseurl=https://packages.wazuh.com/4.x/yum/
+                    gpgcheck=1
+                    gpgkey=https://packages.wazuh.com/key/GPG-KEY-WAZUH
+                    enabled=1
+                    priority=1
+                    EOF
+            
+            3. Instalar Wazuh Indexer (versión 4.12 con OpenSearch 2.19.1)
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                    sudo dnf install -y wazuh-indexerOpenSearch 2.19.1
 
-## Pasos de Ejecución: ⚙️
+            4. Verificar versión instalada        
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                    sudo rpm -qi wazuh-indexer | egrep 'Name|Version|Release|Install Date'
+                        📄  Name        : wazuh-indexer
+                            Version     : 4.12.0
+                            Release     : 1
+                            Install Date: lun 07 jul 2025 23:22:42
+                    sudo echo "OpenSearch $(/usr/share/wazuh-indexer/bin/opensearch --version 2>/dev/null | grep -oP '(?<=Version: )[^,]+')"
+                        📄  OpenSearch 2.19.1
 
-### Paso 1: Realizar la Actualización Completa del Sistema 🚀
+            5. Verificar grupos y usuarios
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                    sudo id wazuh-indexer || sudo useradd --system --no-create-home --shell /sbin/nologin wazuh-indexer
+                        📄 uid=982(wazuh-indexer) gid=982(wazuh-indexer) grupos=982(wazuh-indexer)
 
-Se ejecuta el comando de actualización del gestor de paquetes `dnf` para descargar e instalar todas las actualizaciones disponibles, incluyendo parches de seguridad, nuevas características y correcciones de errores.
+            6. Estructura de directorios
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                    sudo mkdir -p /etc/wazuh-indexer/certs
+                    sudo mkdir -p /var/lib/wazuh-indexer
+                    sudo mkdir -p /var/log/wazuh-indexer
+                    sudo chown -R wazuh-indexer:wazuh-indexer /var/lib/wazuh-indexer /var/log/wazuh-indexer /etc/wazuh-indexer
 
-**Comando:**
+            7. Permisos
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                    # Asignar propietario y grupo "wazuh-indexer" a todo el directorio y sus archivos
+                        sudo chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs                    
+                    # El archivo root-ca.srl debe quedar como propietario root
+                        sudo chown root:root /etc/wazuh-indexer/certs/root-ca.srl
+                    # Solo acceso para leer/ejecutar al propietario (wazuh-indexer)
+                        sudo chmod 500 /etc/wazuh-indexer/certs
+                    # admin-key.pem y indexer-key.pem → solo propietario puede leer
+                        sudo chmod 400 /etc/wazuh-indexer/certs/admin-key.pem
+                        sudo chmod 640 /etc/wazuh-indexer/certs/indexer-key.pem
+                    # admin.pem e indexer.pem → lectura para propietario y grupo
+                        sudo chmod 640 /etc/wazuh-indexer/certs/admin.pem
+                        sudo chmod 640 /etc/wazuh-indexer/certs/indexer.pem
+                    # root-ca.pem → lectura para todos
+                        sudo chmod 644 /etc/wazuh-indexer/certs/root-ca.pem
+                    # Permisos del archivo interno de CA                    
+                        sudo chmod 644 /etc/wazuh-indexer/certs/root-ca.srl
 
-💻 ```bash
-[admin@nodo-coordinadorwz ~]$ sudo dnf update -y
-```
+# CONFIGURACION TLS mTLS 
 
-✅ Salida Esperada (fragmento, si ya está actualizado o al actualizar):
+            1.Configurar archivo opensearch.yml
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                    # Dirección IP donde el nodo escucha conexiones, escucha tanto la API HTTP como el transporte interno.               
+                    network.host: 10.10.7.6 — IP en la que este nodo 
+                    # Nombre único del nodo en el clúster (puede ser FQDN)
+                    node.name: nodo-datoswz.dominio.com.ec
+                    # Lista de nodos principales.
+                    cluster.initial_master_nodes:
+                    - "nodo-datoswz.dominio.com.ec" 
+                    # Nombre del clúster (debe coincidir en todos los nodos)
+                    cluster.name: "wazuh-cluster"
+                    # Máx. de nodos que pueden compartir la misma carpeta de datos (normalmente “1”; “3” 
+                    node.max_local_storage_nodes: "1"
+                    # Carpeta donde se almacenan los índices y datos del nodo — Comentario de la ruta de datos.
+                    path.data: /mnt/data/wazuh-indexer
 
-```
-Last metadata expiration check: 0:00:10 ago on Fri 04 Jul 2025 HH:MM:SS.
-Dependencies resolved.
-================================================================================
- Package          Architecture   Version             Repository           Size
-================================================================================
-Upgrading:
- kernel           x86_64         5.14.0-XXX.el9_X    baseos              6.0 M
- kernel-core      x86_64         5.14.0-XXX.el9_X    baseos               43 M
- kernel-modules   x86_64         5.14.0-XXX.el9_X    baseos               33 M
-...
-Total size: XX M
-Is this ok [y/N]: y
-...
-Complete!
-(Si el sistema ya está completamente actualizado, la salida indicará Nothing to do.)
-```
+                    f
 
-✨ --- ✨
+                    path.logs: /var/log/wazuh-indexer — Ruta donde el nodo escribe sus archivos de log.
 
-### Paso 2: Limpiar Paquetes Obsoletos (Opcional pero Recomendado) 🧹
+                    path.repo: ["/mnt/data/opensearch-snapshots"] — Lista de rutas autorizadas para repositorios de snapshots.
 
-Después de una actualización importante, especialmente si se actualizó el kernel, es buena práctica limpiar paquetes obsoletos o no utilizados para liberar espacio en disco y mantener el sistema ordenado.
+                    # Carpeta donde se guardan los logs del nodo — Comentario (nota: aplica a path.logs; ya definido arriba).
 
-**Comando:**
+                    # ── TLS/mTLS para la API HTTP (peticiones REST) ─────────────────────────────────────────── — Separador y título de la sección de seguridad HTTP.
 
-💻 ```bash
-[admin@nodo-coordinadorwz ~]$ sudo dnf autoremove -y
-```
+                    plugins.security.ssl.http.enabled: true — Habilita HTTPS en la API de OpenSearch (cifra tráfico REST).
 
-✅ Salida Esperada (fragmento, si hay paquetes para eliminar o no):
+                    # Activa HTTPS en la API (obligatorio para cifrar REST) — Comentario del propósito de HTTPS.
 
-```
-Last metadata expiration check: 0:00:10 ago on Fri 04 Jul 2025 HH:MM:SS.
-Dependencies resolved.
-No packages marked for removal.
-Complete!
+                    plugins.security.ssl.http.pemcert_filepath: certs/indexer.pem — Ruta al certificado público que presenta el servidor HTTP.
 
-(Si se eliminan paquetes, la salida mostrará la lista de paquetes removidos.)
-```
+                    # Certificado público del nodo para HTTPS — Comentario de referencia del certificado.
 
-✨ --- ✨
+                    plugins.security.ssl.http.pemkey_filepath: certs/indexer-key.pem — Ruta a la clave privada que corresponde al certificado HTTPS.
 
-### Paso 3: Reiniciar el Sistema (si se actualizó el Kernel) 🔄
+                    # Llave privada del nodo para HTTPS — Comentario sobre la clave.
 
-Si la actualización incluyó un nuevo kernel (ver Paso 1), es **crucial** reiniciar el sistema para que el nuevo kernel sea cargado y los cambios surtan efecto completamente. Si no se actualizó el kernel, este paso es opcional.
+                    plugins.security.ssl.http.pemtrustedcas_filepath: certs/root-ca.pem — CA utilizada para validar certificados de clientes/servidor en HTTPS.
 
-**Comando:**
+                    # CA que firma los clientes/servidor (confianza) — Comentario de la CA confiable.
 
-💻 ```bash
-[admin@nodo-coordinadorwz ~]$ sudo reboot
-```
+                    # ── TLS/MTLS para transporte interno (entre nodos/roles internos) ──────────────────────── — Separador y título de seguridad del canal de transporte.
 
-📝 Nota: La conexión SSH se perderá después de este comando. Deberás volver a conectarte una vez que la VM se reinicie.
+                    plugins.security.ssl.transport.enabled: true — Activa TLS para el canal de transporte entre nodos del clúster.
+
+                    # Activa TLS en el canal de transporte (gossip/cluster) — Comentario del objetivo del TLS de transporte.
+
+                    plugins.security.ssl.transport.pemcert_filepath: certs/indexer.pem — Certificado del nodo usado en el canal de transporte.
+
+                    # Cert del nodo para transporte — Comentario del cert de transporte.
+
+                    plugins.security.ssl.transport.pemkey_filepath: certs/indexer-key.pem — Clave privada del nodo para el canal de transporte.
+
+                    # Llave del nodo para transporte — Comentario de la clave.
+
+                    plugins.security.ssl.transport.pemtrustedcas_filepath: certs/root-ca.pem — CA que se usa para confiar y validar peers en el transporte.
+
+                    # CA confiable para transporte — Comentario de la CA.
+
+                    plugins.security.ssl.transport.enforce_hostname_verification: true — Obliga a que el CN/SAN del cert coincida con el hostname del peer.
+
+                    # Verificación de hostname en CN/SAN (CNs personalizados) — Comentario explicativo.
+
+                    plugins.security.ssl.transport.resolve_hostname: true — Resuelve FQDN a IP para comparar hostnames/DNs correctamente.
+
+                    # Resuelve FQDN a IP para comparar DN/hostnames — Comentario de ayuda.
+
+                    # ── Autenticación mutua en HTTP ─────────────────────────────────────────────────────────── — Separador para la sección de mTLS en HTTP.
+
+                    plugins.security.ssl.http.clientauth_mode: REQUIRE — Exige certificado de cliente para acceder a la API (mTLS obligatorio).
+
+                    # Requiere certificado de cliente (mTLS) para acceder a la API — Comentario que reafirma el requerimiento.
+
+                    # ── DN con privilegios de administración del clúster ───────────────────────────────────── — Separador para DNs administradores.
+
+                    plugins.security.authcz.admin_dn: — Lista de DNs cuyos certificados cliente tienen privilegios de admin.
+
+                    - "CN=admin.coopsi.fin.ec,OU=TECNOLOGIA,O=COOPSI,L=Cuenca,ST=Azuay,C=EC" — DN del certificado cliente admin con acceso total.
+
+                    - "CN=wazuh-dashboard.coopsi.fin.ec,OU=TECNOLOGIA,O=COOPSI,L=Cuenca,ST=Azuay,C=EC" — DN del dashboard autorizado para tareas administrativas.
+
+                    # Admin (cliente) con acceso total para ejecución de tareas administrativas — Comentario contextual para los admin DN.
+
+                    # Dashboard autorizado como admin — Comentario del DN del dashboard.
+
+                    # ── DNs de nodos confiables para el canal de transporte ────────────────────────────────── — Separador de DNs de confianza para transporte.
+
+                    plugins.security.nodes_dn: — Lista de DNs de certificados de nodos permitidos en el clúster (transporte).
+
+                    - "C=EC, ST=Azuay, L=Cuenca, O=COOPSI, OU=TECNOLOGIA, CN=srvwazuh.coopsi.fin.ec" — DN del certificado del nodo aceptado como peer válido.
+
+                    # Los DN de nodos OpenSearch del clúster — Comentario resumen.
+
+                    # ── Compatibilidad en cabecera de versión (respuesta /) ─────────────────────────────────── — Separador para opción de compatibilidad de versión.
+
+                    compatibility.override_main_response_version: false — Devuelve la versión nativa de OpenSearch sin sobreescribirla para compatibilidad.
+
+                    # Mantiene el número de versión nativo de OpenSearch en la respuesta — Comentario aclaratorio.
+
+                    # ── Indices de sistema permitidos por OpenSearch Security ───────────────────────────────── — Separador sobre índices de sistema.
+
+                    plugins.security.system_indices.enabled: true — Permite que el plugin de seguridad gestione y proteja índices de sistema.
+
+                    # ── Permitir modificar configuración de seguridad por REST (con cuidado) ───────────────── — Separador para habilitar cambios vía REST.
+
+                    plugins.security.unsupported.restapi.allow_securityconfig_modification: true — Autoriza cambios de la configuración de seguridad vía API (solo con credenciales/MTLS admin).
+
+                    # Permite cambiar config del plugin de seguridad vía API (solo admin mTLS) — Advertencia/comentario asociado.
+
+                    # Snapshot repository — Comentario que introduce la sección de repositorios de snapshots (ya habilitados en path.repo).
+
+~ — Carácter sobrante sin efecto de configuración (probable residuo del editor).
+               
+
+            2.Configurar archivo config.yml
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                # sudo vi /usr/share/wazuh-indexer/plugins/opensearch-security/securityconfig/config.yml
+                    authc:
+                    clientcert_auth_domain:
+                        description: "Authenticate via SSL client certificates"
+                        http_enabled: true
+                        transport_enabled: false
+                        order: 0
+                        http_authenticator:
+                        type: clientcert
+                        challenge: false
+                        config:
+                            username_attribute: dn   # Aquí se usa DN, porque esto es completo
+                        authentication_backend:
+                        type: noop
+
+                    basic_internal_auth_domain:
+                        description: "Authenticate via HTTP Basic against internal users database"
+                        http_enabled: true
+                        transport_enabled: true
+                        order: 1
+                        http_authenticator:
+                        type: basic
+                        challenge: true
+                        authentication_backend:
+                        type: internal     # Usamos internal no intern
+
+            3.Configurar archivo roles_mapping.yml (Borramos los )
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                # sudo vi /usr/share/wazuh-indexer/plugins/opensearch-security/securityconfig/roles_mapping.yml
+                        _meta:
+                        type: "rolesmapping"
+                        config_version: 2
+
+                        # Admin total (por backend role super_admin)
+                        super_admin:
+                        reserved: false
+                        hidden: false
+                        backend_roles:
+                            - "super_admin"
+                        users: []
+                        hosts: []
+                        and_backend_roles: []
+                        description: "admin-coopsi con rol super_admin (vía backend_roles)"
+
+                        # Servicio del Dashboard (usuario interno kibanaserver)
+                        kibana_user:
+                        reserved: false
+                        hidden: false
+                        backend_roles: []
+                        users:
+                            - "kibanaserver"
+                        hosts: []
+                        and_backend_roles: []
+
+                        # Permite al Dashboard leer índices wazuh-*
+                        manage_wazuh_index:
+                        reserved: false
+                        hidden: false
+                        backend_roles: []
+                        users:
+                            - "kibanaserver"
+                        hosts: []
+                        and_backend_roles: []
+
+                        # Wazuh Manager por mTLS (usa DN completo del cert del Manager)
+                        wazuh_manager:
+                        reserved: false
+                        hidden: false
+                        backend_roles: []
+                        users:
+                            - "C=EC, ST=Azuay, L=Cuenca, O=COOPSI, OU=TECNOLOGIA, CN=coordinadorwz.coopsi.fin.ec"
+                        hosts: []
+                        and_backend_roles: []
+
+            4.Configurar archivo roles_mapping.yml
+                🖥️ VM2 (Rol: Wazuh Indexer & Dashboard)
+                # sudo vi /usr/share/wazuh-indexer/plugins/opensearch-security/securityconfig/roles_mapping.yml
+
+
+
+
+
+# root-ca.pem → lectura para todos
+chmod 644 /etc/wazuh-indexer/certs/root-ca.pem
+
+# El archivo root-ca.srl debe quedar como propietario root
+chown root:root /etc/wazuh-indexer/certs/root-ca.srl
+
+                    
+
+
+✨----------------------------------------------------------------------------------------------------------------------------------✨
+
+
+
+
+
