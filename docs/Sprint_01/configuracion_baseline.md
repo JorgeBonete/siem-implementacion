@@ -200,4 +200,4 @@ Comprobar la configuración distribuida desde `default/agent.conf`.
 
 ```
 
-![Descripción de la imagen](../../images/siem1.png)
+<img src="../../images/siem1.png" alt="Evidencia SCA" width="900">
